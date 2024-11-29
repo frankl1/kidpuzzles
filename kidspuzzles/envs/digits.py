@@ -2,26 +2,60 @@ import gymnasium as gym
 from gymnasium import spaces
 import pygame
 import numpy as np
+from scipy.spatial.distance import hamming
 
 
 class DigitsPuzzleEnv(gym.Env):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, size=5):
-        self.size = size  # The size of the square grid
+    def __init__(self, render_mode=None):
+        self.width = 7  # The width of the grid
+        self.height = 4 # The height of the grid
         self.window_size = 512  # The size of the PyGame window
 
         # Observations are dictionaries with the agent's and the target's location.
         # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
         self.observation_space = spaces.Dict(
             {
-                "agent": spaces.Box(0, size - 1, shape=(2,), dtype=int),
-                "target": spaces.Box(0, size - 1, shape=(2,), dtype=int),
+                "digits_positions": spaces.Dict(
+                    {i: spaces.Box(0, (self.width, self.height), shape=(2,), dtype=int) for i in range(10)}
+                ),
+                "target_digits_positions": spaces.Dict(
+                    {i: spaces.Box(0, (self.width, self.height), shape=(2,), dtype=int) for i in range(10)}
+                ),
+                "picked_digit": spaces.Box(-1, 9, shape=(1,), dtype=int),
             }
         )
 
-        # We have 4 actions, corresponding to "right", "up", "left", "down", "right"
-        self.action_space = spaces.Discrete(4)
+        # The target digits' positions. The desired observation to win the game
+        self._target_digits_pisitions = np.array([
+            [1, 1],
+            [1, 2],
+            [1, 3],
+            [1, 4],
+            [1, 5],
+            [2, 1],
+            [2, 2],
+            [2, 3],
+            [2, 4],
+            [2, 5],
+        ])
+        
+        # The current observation as a 2s numpy array of 10 x 2
+        self._digits_positions: np.array = None
+
+        # The current picked digit as an integer in [-1, 9]. -1 means not digit is picked
+        self._picked_digit: int = -1
+
+        # We have 15 actions, corresponding to:
+        # "right", 
+        # "up", 
+        # "left", 
+        # "down", 
+        # "right", 
+        # "drop picked digit", 
+        # "pick digit 0", "pick digit 1", ..., "pick digit 9"
+        self.action_space = spaces.Discrete(15)
 
         """
         The following dictionary maps abstract actions from `self.action_space` to 
@@ -48,13 +82,20 @@ class DigitsPuzzleEnv(gym.Env):
         self.window = None
         self.clock = None
 
+
+
     def _get_obs(self):
-        return {"agent": self._agent_location, "target": self._target_location}
+        return {
+            "digits_positions": self._digits_positions, 
+            "target_digits_positions": self._target_digits_pisitions,
+            "picked_digit": self._picked_digit,
+        }
 
     def _get_info(self):
+    
         return {
-            "distance": np.linalg.norm(
-                self._agent_location - self._target_location, ord=1
+            "distance": hamming(
+                self._digits_positions, self._target_digits_pisitions
             )
         }
 
@@ -62,15 +103,13 @@ class DigitsPuzzleEnv(gym.Env):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
 
-        # Choose the agent's location uniformly at random
-        self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
+        # Choose the digits' locations uniformly at random, choosing x from [0, 3] and y from [0, 6]
+        xs = self.np_random.choice([0, 3], size=10, replace=True)
+        ys = self.np_random.choice([0, 6], size=10, replace=True)
+        self._digits_positions = np.column_stack((xs, ys))
 
-        # We will sample the target's location randomly until it does not coincide with the agent's location
-        self._target_location = self._agent_location
-        while np.array_equal(self._target_location, self._agent_location):
-            self._target_location = self.np_random.integers(
-                0, self.size, size=2, dtype=int
-            )
+        # No digit is picked
+        self._picked_digit = -1
 
         observation = self._get_obs()
         info = self._get_info()
