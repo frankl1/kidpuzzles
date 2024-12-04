@@ -7,6 +7,10 @@ from .actions import Action, action_to_digit, action_to_direction
 from .color import Color
 
 class DigitsPuzzleEnv(gym.Env):
+    """A 7 x 4 Grid environment for training an agent on the digit game.
+
+    The goal is to move the digit from 0 to 9 to their respective locations at the center of the grid
+    """
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
     def __init__(self, render_mode=None, window_width = 512, window_height = 256):
