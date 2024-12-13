@@ -152,34 +152,37 @@ class DigitsPuzzleEnv(gym.Env):
             self.clock = pygame.time.Clock()
 
         canvas = pygame.Surface((self.window_width, self.window_height))
-        canvas.fill((255, 255, 255))
-        pix_cell_size = np.array([
+        canvas.fill(Color.WHITE)
+        cell_size = np.array([
             self.window_width / self.width,
             self.window_height / self.height
         ])  # The size of a single grid rectangle in pixels
 
+        # fill the target area in Orange
+        canvas.fill(Color.ORANGE, pygame.Rect(cell_size, (cell_size[0]*(self.width-2), cell_size[1]*(self.height-2))))
+
         # First we draw the targets's positions
         for digit in range(self.n_digits):
-            digit_img = create_digit_img(digit, Color.GREY)
+            digit_img = create_digit_img(digit, Color.WHITE)
             digit_img_size = np.array(digit_img.get_size())
-            offset = (pix_cell_size - digit_img_size) / 2
-            canvas.blit(digit_img, (pix_cell_size * self._target_digits_positions[digit] + offset))
+            offset = (cell_size - digit_img_size) / 2
+            canvas.blit(digit_img, (cell_size * self._target_digits_positions[digit] + offset))
 
         # Now we draw the digits
         for digit in range(self.n_digits):
             digit_img = create_digit_img(digit)
             digit_img_size = np.array(digit_img.get_size())
-            offset = (pix_cell_size - digit_img_size) / 2
+            offset = (cell_size - digit_img_size) / 2
 
-            canvas.blit(digit_img, (pix_cell_size * self._digits_positions[digit]) + offset)
+            canvas.blit(digit_img, (cell_size * self._digits_positions[digit]) + offset)
 
         # add some horizontal lines
         for y in range(1, self.height):
             pygame.draw.line(
                 canvas,
                 0,
-                (0, pix_cell_size[1] * y),
-                (self.window_width, pix_cell_size[1] * y),
+                (0, cell_size[1] * y),
+                (self.window_width, cell_size[1] * y),
                 width=3,
             )
 
@@ -188,8 +191,8 @@ class DigitsPuzzleEnv(gym.Env):
             pygame.draw.line(
                 canvas,
                 0,
-                (pix_cell_size[0] * x, 0),
-                (pix_cell_size[0] * x, self.window_height),
+                (cell_size[0] * x, 0),
+                (cell_size[0] * x, self.window_height),
                 width=3,
             )
 
