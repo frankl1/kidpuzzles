@@ -1,56 +1,18 @@
 from enum import Enum
 import numpy as np
 
-class Action(Enum):
-    RIGHT0 = 0
-    UP0 = 1
-    LEFT0 = 2
-    DOWN0 = 3
+def create_action(n_digits: int):
+    """Create an Enum for the actions up to n_digits
 
-    RIGHT1 = 4
-    UP1 = 5
-    LEFT1 = 6
-    DOWN1 = 7
+    Args:
+        n_digits (int): The number of digits to create actions for.
 
-    RIGHT2 = 8
-    UP2 = 9
-    LEFT2 = 10
-    DOWN2 = 11
-
-    RIGHT3 = 12
-    UP3 = 13
-    LEFT3 = 14
-    DOWN3 = 15
-
-    RIGHT4 = 16
-    UP4 = 17
-    LEFT4 = 18
-    DOWN4 = 19
-
-    RIGHT5 = 20
-    UP5 = 21
-    LEFT5 = 22
-    DOWN5 = 23
-
-    RIGHT6 = 24
-    UP6 = 25
-    LEFT6 = 26
-    DOWN6 = 27
-
-    RIGHT7 = 28
-    UP7 = 29
-    LEFT7 = 30
-    DOWN7 = 31
-
-    RIGHT8 = 32
-    UP8 = 33
-    LEFT8 = 34
-    DOWN8 = 35
-
-    RIGHT9 = 36
-    UP9 = 37
-    LEFT9 = 38
-    DOWN9 = 39
+    Returns:
+        CustomAction: an Enum named Action
+    """
+    item_dicts = [{f"RIGHT{i}": 0+i*4, f"UP{i}": 1+i*4, f"LEFT{i}": 2+i*4, f"DOWN{i}": 3+i*4} for i in range(n_digits)]
+    items = {k: v for d in item_dicts for k, v in d.items()}
+    return Enum("Action", items)
 
 def action_to_digit(action_val: int) -> int:
     """Returns the digit corresponding to the action value

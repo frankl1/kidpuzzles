@@ -3,7 +3,7 @@ from gymnasium import spaces
 import pygame
 import numpy as np
 from scipy.spatial.distance import hamming
-from .actions import Action, action_to_digit, action_to_direction
+from .actions import create_action, action_to_digit, action_to_direction
 from .color import Color
 
 class DigitsPuzzleEnv(gym.Env):
@@ -13,19 +13,22 @@ class DigitsPuzzleEnv(gym.Env):
     """
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, render_mode=None, window_width = 512, window_height = 256):
-        self.width = 7  # The width of the grid
-        self.height = 4 # The height of the grid
+    def __init__(self, render_mode:str = None, n_digits:int = 10, window_width: int = 512, window_height:int = 256):
+        assert 0 < n_digits < 11, "n_digits must be in [1, 10]"
+        self.n_digits = n_digits
+
+        self.width = 7 if self.n_digits > 5 else self.n_digits + 2  # The width of the grid
+        self.height = 4 if self.n_digits > 5 else 3 # The height of the grid
         self.window_width = window_width  # The width of the PyGame window
         self.window_height = window_height  # The height of the PyGame window
 
         # Observations are dictionaries with the agent's and the target's location.
         # Each location is encoded as an element of {0, ..., `size`}^2, i.e. MultiDiscrete([size, size]).
-        high_bound = np.column_stack(([self.width]*10, [self.height]*10))
+        high_bound = np.column_stack(([self.width]*self.n_digits, [self.height]*self.n_digits))
         self.observation_space = spaces.Dict(
             {
-                "digits_positions": spaces.Box(0, high_bound, shape=(10, 2), dtype=int),
-                "target_digits_positions": spaces.Box(0, high_bound, shape=(10, 2), dtype=int),
+                "digits_positions": spaces.Box(0, high_bound, shape=(self.n_digits, 2), dtype=int),
+                "target_digits_positions": spaces.Box(0, high_bound, shape=(self.n_digits, 2), dtype=int),
             }
         )
 
@@ -41,12 +44,14 @@ class DigitsPuzzleEnv(gym.Env):
             [3, 2],
             [4, 2],
             [5, 2],
-        ])
+        ])[:self.n_digits]
         
-        # The current observation as a 2s numpy array of 10 x 2
+        # The current observation as a 2s numpy array of n_digit x 2
         self._digits_positions: np.array = None
 
-        self.action_space = spaces.Discrete(len(Action))
+        actions = create_action(self.n_digits)
+
+        self.action_space = spaces.Discrete(len(actions))
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
         self.render_mode = render_mode
@@ -90,8 +95,8 @@ class DigitsPuzzleEnv(gym.Env):
             # Get the coordinates of the border cells
             border_cells = np.argwhere(grid == 1)
 
-            # Randomly sample 10 border cells
-            self._digits_positions = border_cells[np.random.choice(border_cells.shape[0], 10, replace=False)]
+            # Randomly sample n_digits border cells
+            self._digits_positions = border_cells[np.random.choice(border_cells.shape[0], self.n_digits, replace=False)]
 
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
@@ -154,14 +159,14 @@ class DigitsPuzzleEnv(gym.Env):
         ])  # The size of a single grid rectangle in pixels
 
         # First we draw the targets's positions
-        for digit in range(10):
+        for digit in range(self.n_digits):
             digit_img = create_digit_img(digit, Color.GREY)
             digit_img_size = np.array(digit_img.get_size())
             offset = (pix_cell_size - digit_img_size) / 2
             canvas.blit(digit_img, (pix_cell_size * self._target_digits_positions[digit] + offset))
 
         # Now we draw the digits
-        for digit in range(10):
+        for digit in range(self.n_digits):
             digit_img = create_digit_img(digit)
             digit_img_size = np.array(digit_img.get_size())
             offset = (pix_cell_size - digit_img_size) / 2
