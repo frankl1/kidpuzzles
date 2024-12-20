@@ -2,7 +2,7 @@ import gymnasium as gym
 from gymnasium import spaces
 import pygame
 import numpy as np
-from scipy.spatial.distance import hamming
+from scipy.spatial.distance import cityblock
 from .actions import create_action, action_to_digit, action_to_direction
 from .color import Color
 
@@ -75,7 +75,7 @@ class DigitsPuzzleEnv(gym.Env):
     def _get_info(self):
     
         return {
-            "distance": hamming(
+            "distance": cityblock(
                 self._digits_positions.flatten(), self._target_digits_positions.flatten()
             )
         }
@@ -115,12 +115,10 @@ class DigitsPuzzleEnv(gym.Env):
         # Map the action (element of {0,1,2,3}) to the direction we walk in
         direction = action_to_direction(action)
         digit = action_to_digit(action)
+
+        # We use `np.clip` to make sure we don't leave the grid
         self._digits_positions[digit] = np.clip(
             self._digits_positions[digit] + direction, 0, (self.width - 1, self.height - 1)
-        )
-        # We use `np.clip` to make sure we don't leave the grid
-        self._digits_positions = np.clip(
-            self._digits_positions + direction, 0, (self.width - 1, self.height - 1)
         )
 
         # An episode is done iff the agent has reached the target
