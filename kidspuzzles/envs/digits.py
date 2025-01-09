@@ -72,12 +72,20 @@ class DigitsPuzzleEnv(gym.Env):
             "target_digits_positions": self._target_digits_positions,
         }
 
+    def get_distance(self):
+        """Return the Manhattan distance between the current position and the target position
+
+        Returns:
+            int: the distance
+        """
+        return cityblock(
+                self._digits_positions.flatten(), self._target_digits_positions.flatten()
+            )
+    
     def _get_info(self):
     
         return {
-            "distance": cityblock(
-                self._digits_positions.flatten(), self._target_digits_positions.flatten()
-            )
+            "distance": self.get_distance()
         }
 
     def reset(self, seed=None, options=None):
@@ -117,13 +125,12 @@ class DigitsPuzzleEnv(gym.Env):
         digit = action_to_digit(action)
 
         # We use `np.clip` to make sure we don't leave the grid
+        next_digit_pos = self._digits_positions[digit] + direction
         self._digits_positions[digit] = np.clip(
-            self._digits_positions[digit] + direction, 0, (self.width - 1, self.height - 1)
+            next_digit_pos, 0, (self.width - 1, self.height - 1)
         )
 
-        # An episode is done iff the agent has reached the target
-        terminated = np.array_equal(self._digits_positions, self._target_digits_positions)
-        reward = 1 if terminated else 0  # Binary sparse rewards
+        reward, terminated = self.get_reward(clipped=not np.array_equal(next_digit_pos, self._digits_positions[digit]))
         observation = self._get_obs()
         info = self._get_info()
 
@@ -131,6 +138,27 @@ class DigitsPuzzleEnv(gym.Env):
             self._render_frame()
 
         return observation, reward, terminated, False, info
+    
+    def get_reward(self, clipped: bool = False):
+        """Compute the reward of an action
+
+        Args:
+            clipped (bool, optional): wether the position has been clipped or not. Defaults to False.
+
+        Returns:
+            (float, bool): a tuple with the reward and a boolean telling if the episode is terminated.
+        """
+        reward, terminated = 0, False
+        # An episode is done iff the agent has reached the target
+        terminated = np.array_equal(self._digits_positions, self._target_digits_positions)
+        if terminated:
+            reward = 100 # larget positive reward if terminated
+        else:
+            reward = -self.get_distance()
+            if clipped:
+                reward += -100 # penalty for going out of the world
+        
+        return reward, terminated
 
     def render(self):
         if self.render_mode == "rgb_array":
