@@ -32,7 +32,7 @@ class DigitsPuzzleEnv(gym.Env):
             }
         )
 
-        # The target digits' positions as (y, x). The desired observation to win the game
+        # The target digits' positions as (x, y). The desired observation to win the game
         self._target_digits_positions = np.array([
             [1, 1],
             [2, 1],
@@ -125,12 +125,13 @@ class DigitsPuzzleEnv(gym.Env):
         digit = action_to_digit(action)
 
         # We use `np.clip` to make sure we don't leave the grid
-        next_digit_pos = self._digits_positions[digit] + direction
+        curr_digit_pos = self._digits_positions[digit]
+        next_digit_pos = curr_digit_pos + direction
         self._digits_positions[digit] = np.clip(
             next_digit_pos, 0, (self.width - 1, self.height - 1)
         )
 
-        reward, terminated = self.get_reward(clipped=not np.array_equal(next_digit_pos, self._digits_positions[digit]))
+        reward, terminated = self.get_reward(curr_digit_pos, next_digit_pos, clipped=not np.array_equal(next_digit_pos, self._digits_positions[digit]))
         observation = self._get_obs()
         info = self._get_info()
 
@@ -139,10 +140,12 @@ class DigitsPuzzleEnv(gym.Env):
 
         return observation, reward, terminated, False, info
     
-    def get_reward(self, clipped: bool = False):
+    def get_reward(self, curr_digit_pos: list[int, int], next_digit_pos: list[int, int], clipped: bool = False):
         """Compute the reward of an action
 
         Args:
+            curr_digit_pos (list[int, int]): the position of the digit before the action
+            next_digit_pos (list[int, int]): the position of the digit after the action
             clipped (bool, optional): wether the position has been clipped or not. Defaults to False.
 
         Returns:
@@ -152,11 +155,25 @@ class DigitsPuzzleEnv(gym.Env):
         # An episode is done iff the agent has reached the target
         terminated = np.array_equal(self._digits_positions, self._target_digits_positions)
         if terminated:
-            reward = 100 # larget positive reward if terminated
+            reward = 200 # generous reward if terminated
         else:
             reward = -self.get_distance()
             if clipped:
                 reward += -100 # penalty for going out of the world
+            else:
+                # Penalize the agent for moving a digit from the target area to 
+                # borders of the world as this action can never improve the policy.
+                # Encourage the agent to move digit inside the target area by adding a bonus.
+                next_x, next_y = next_digit_pos
+                curr_x, curr_y = curr_digit_pos
+                next_on_boundaries = next_x in (0, self.width - 1) or next_y in (0, self.height - 1)
+                curr_on_boundaries = curr_x in (0, self.width - 1) or curr_y in (0, self.height - 1)
+                if next_on_boundaries and not curr_on_boundaries: # exit target area
+                    reward += -100
+                elif curr_on_boundaries and not next_on_boundaries: # entered target area
+                    reward += 50
+                else: # stayed in the same area
+                    pass
         
         return reward, terminated
 
