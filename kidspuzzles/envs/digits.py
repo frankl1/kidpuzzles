@@ -66,26 +66,35 @@ class DigitsPuzzleEnv(gym.Env):
         self.window = None
         self.clock = None
 
+        self.reward_list = [] # collect rewards
+
     def _get_obs(self):
         return {
             "digits_positions": self._digits_positions, 
             "target_digits_positions": self._target_digits_positions,
         }
 
-    def get_distance(self):
+    def get_distance(self, normalize:bool = True):
         """Return the Manhattan distance between the current position and the target position
 
+        Args:
+            normalize (bool): weither to return the normalized distance
         Returns:
             int: the distance
         """
-        return cityblock(
+        dist =  cityblock(
                 self._digits_positions.flatten(), self._target_digits_positions.flatten()
             )
+        if normalize:
+            dist /= (self.width + self.height - 2)
+            dist /= self.n_digits
+        
+        return dist
     
     def _get_info(self):
     
         return {
-            "distance": self.get_distance()
+            "distance": self.get_distance(normalize=False)
         }
 
     def reset(self, seed=None, options=None):
@@ -131,7 +140,7 @@ class DigitsPuzzleEnv(gym.Env):
             next_digit_pos, 0, (self.width - 1, self.height - 1)
         )
 
-        reward, terminated = self.get_reward(curr_digit_pos, next_digit_pos, clipped=not np.array_equal(next_digit_pos, self._digits_positions[digit]))
+        reward, terminated = self.get_reward(curr_digit_pos, self._digits_positions[digit], clipped=not np.array_equal(next_digit_pos, self._digits_positions[digit]))
         observation = self._get_obs()
         info = self._get_info()
 
@@ -155,11 +164,11 @@ class DigitsPuzzleEnv(gym.Env):
         # An episode is done iff the agent has reached the target
         terminated = np.array_equal(self._digits_positions, self._target_digits_positions)
         if terminated:
-            reward = 200 # generous reward if terminated
+            reward = 1 # generous reward if terminated
         else:
             reward = -self.get_distance()
             if clipped:
-                reward += -100 # penalty for going out of the world
+                reward -= 0.02 # penalty for going out of the world
             else:
                 # Penalize the agent for moving a digit from the target area to 
                 # borders of the world as this action can never improve the policy.
@@ -168,13 +177,15 @@ class DigitsPuzzleEnv(gym.Env):
                 curr_x, curr_y = curr_digit_pos
                 next_on_boundaries = next_x in (0, self.width - 1) or next_y in (0, self.height - 1)
                 curr_on_boundaries = curr_x in (0, self.width - 1) or curr_y in (0, self.height - 1)
-                if next_on_boundaries and not curr_on_boundaries: # exit target area
-                    reward += -100
-                elif curr_on_boundaries and not next_on_boundaries: # entered target area
-                    reward += 50
-                else: # stayed in the same area
-                    pass
+                # if next_on_boundaries and not curr_on_boundaries: # exit target area
+                #     reward -= 0.2
+                # elif curr_on_boundaries and not next_on_boundaries: # entered target area
+                #     reward += 0.1
+                # else: # stayed in the same area
+                #     pass
         
+        self.reward_list.append(reward)
+
         return reward, terminated
 
     def render(self):
