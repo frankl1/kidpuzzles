@@ -177,12 +177,12 @@ class DigitsPuzzleEnv(gym.Env):
                 curr_x, curr_y = curr_digit_pos
                 next_on_boundaries = next_x in (0, self.width - 1) or next_y in (0, self.height - 1)
                 curr_on_boundaries = curr_x in (0, self.width - 1) or curr_y in (0, self.height - 1)
-                # if next_on_boundaries and not curr_on_boundaries: # exit target area
-                #     reward -= 0.2
-                # elif curr_on_boundaries and not next_on_boundaries: # entered target area
-                #     reward += 0.1
-                # else: # stayed in the same area
-                #     pass
+                if next_on_boundaries and not curr_on_boundaries: # exit target area
+                    reward -= 0.02
+                elif curr_on_boundaries and not next_on_boundaries: # entered target area
+                    reward += 0.01
+                else: # stayed in the same area
+                    pass
         
         self.reward_list.append(reward)
 
