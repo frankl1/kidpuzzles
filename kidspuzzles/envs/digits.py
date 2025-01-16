@@ -211,11 +211,11 @@ class DigitsPuzzleEnv(gym.Env):
             img = font.render(str(digit), True, color)
             return img 
         
-        if self.window is None and self.render_mode == "human":
+        if self.window is None:
             pygame.init()
             pygame.display.init()
             self.window = pygame.display.set_mode((self.window_width, self.window_height))
-        if self.clock is None and self.render_mode == "human":
+        if self.clock is None:
             self.clock = pygame.time.Clock()
 
         canvas = pygame.Surface((self.window_width, self.window_height))
