@@ -79,8 +79,6 @@ class DigitsPuzzleEnv(gym.Env):
         self.window = None
         self.clock = None
 
-        self.reward_list = [] # collect rewards
-
     def _get_obs(self):
         return {
             "digits_positions": self._digits_positions, 
@@ -197,8 +195,6 @@ class DigitsPuzzleEnv(gym.Env):
                 else: # stayed in the same area
                     pass
         
-        self.reward_list.append(reward)
-
         return reward, terminated
 
     def render(self):
