@@ -13,15 +13,17 @@ class DigitsPuzzleEnv(gym.Env):
     """
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 4}
 
-    def __init__(self, 
-                 render_mode:str = None, 
-                 n_digits:int = 10, 
-                 window_width: int = 512, 
+    def __init__(self,
+                 render_mode:str = None,
+                 n_digits:int = 10,
+                 window_width: int = 512,
                  window_height:int = 256,
-                 reward_terminate: float = 1,
-                 reward_clipped: float = -0.02,
-                 reward_enter_target_area: float = 0.01,
-                 reward_exit_target_area: float = -0.02):
+                 reward_terminate: float = 10,
+                 reward_clipped: float = -1,
+                 reward_enter_target_area: float = 0.1,
+                 reward_exit_target_area: float = -1,
+                 reward_reach_a_target_pos: float = 0.2,
+                 reward_leave_a_target_pos: float = -1):
         assert 0 < n_digits < 11, "n_digits must be in [1, 10]"
         self.n_digits = n_digits
 
@@ -29,6 +31,8 @@ class DigitsPuzzleEnv(gym.Env):
         self.reward_clipped = reward_clipped
         self.reward_enter_target_area = reward_enter_target_area
         self.reward_exit_target_area = reward_exit_target_area
+        self.reward_reach_target_pos = reward_reach_a_target_pos
+        self.reward_leave_target_pos = reward_leave_a_target_pos
 
         self.width = 7 if self.n_digits > 5 else self.n_digits + 2  # The width of the grid
         self.height = 4 if self.n_digits > 5 else 3 # The height of the grid
@@ -151,7 +155,12 @@ class DigitsPuzzleEnv(gym.Env):
             next_digit_pos, 0, (self.width - 1, self.height - 1)
         )
 
-        reward, terminated = self.get_reward(curr_digit_pos, self._digits_positions[digit], clipped=not np.array_equal(next_digit_pos, self._digits_positions[digit]))
+        clipped = not np.array_equal(next_digit_pos, self._digits_positions[digit])
+
+        reward, terminated = self.get_reward(curr_digit_pos,
+                                             self._digits_positions[digit],
+                                             self._target_digits_positions[digit],
+                                             clipped=clipped)
         observation = self._get_obs()
         info = self._get_info()
 
@@ -160,12 +169,13 @@ class DigitsPuzzleEnv(gym.Env):
 
         return observation, reward, terminated, False, info
     
-    def get_reward(self, curr_digit_pos: list[int, int], next_digit_pos: list[int, int], clipped: bool = False):
+    def get_reward(self, curr_digit_pos: list[int, int], next_digit_pos: list[int, int], target_digit_pos: list[int, int], clipped: bool = False):
         """Compute the reward of an action
 
         Args:
-            curr_digit_pos (list[int, int]): the position of the digit before the action
-            next_digit_pos (list[int, int]): the position of the digit after the action
+            curr_digit_pos (list[int, int]): the position of the digit before the action.
+            next_digit_pos (list[int, int]): the position of the digit after the action.
+            target_digit_pos (list[int, int]): the target position of the digit.
             clipped (bool, optional): wether the position has been clipped or not. Defaults to False.
 
         Returns:
@@ -179,7 +189,7 @@ class DigitsPuzzleEnv(gym.Env):
         else:
             reward = -self.get_distance()
             if clipped:
-                reward -= self.reward_clipped # penalty for going out of the world
+                reward += self.reward_clipped # penalty for going out of the world
             else:
                 # Penalize the agent for moving a digit from the target area to 
                 # borders of the world as this action can never improve the policy.
@@ -189,9 +199,13 @@ class DigitsPuzzleEnv(gym.Env):
                 next_on_boundaries = next_x in (0, self.width - 1) or next_y in (0, self.height - 1)
                 curr_on_boundaries = curr_x in (0, self.width - 1) or curr_y in (0, self.height - 1)
                 if next_on_boundaries and not curr_on_boundaries: # exit target area
-                    reward -= self.reward_exit_target_area
+                    reward += self.reward_exit_target_area
                 elif curr_on_boundaries and not next_on_boundaries: # entered target area
                     reward += self.reward_enter_target_area
+                elif np.array_equal(target_digit_pos, next_digit_pos): # the digit reaches its target location
+                    reward += self.reward_reach_target_pos
+                elif np.array_equal(target_digit_pos, curr_digit_pos): # the digit moves away from its target location
+                    reward += self.reward_leave_target_pos
                 else: # stayed in the same area
                     pass
         
