@@ -15,6 +15,14 @@ Welcome to **KidPuzzles**! This repository contains a set of reinforcement learn
 - **🛠️ Easy to Use**: Kick-off with [playground.ipnb](./playground.ipynb)
 - **🔄 Extensible**: Easily add new puzzles and environments to expand the learning opportunities.
 
+## 🏗️ Environment Details
+### DigitsPuzzleEnv
+![](training-episode-6000-ezgif.com-video-to-gif-converter.gif)
+- **Goal**: Place the digits 0 to 9 in the correct positions on the board.
+- **Actions**: left, right, up, down for each digit.
+- **Observations**: The current state of the board and the positions of the digits.
+- **Rewards**: Manhattan distance-based reward coupled with bonuses/maluses for reaching intermediate targets.
+
 ## 📦 Installation
 
 To get started with KidPuzzles, follow these steps:
@@ -51,13 +59,6 @@ env.close()
 ```
 
 Check out the [playground.ipnb](./playground.ipynb) notebook to see a complete RL training and inference loop on the DigitPuzzleEnv. This notebook provides a step-by-step guide to interacting with the environment and training agents.
-
-## 🏗️ Environment Details
-### DigitsPuzzleEnv
-- **Goal**: Place the digits 0 to 9 in the correct positions on the board.
-- **Actions**: left, right, up, down for each digit.
-- **Observations**: The current state of the board and the positions of the digits.
-- **Rewards**: Manhattan distance-based reward coupled with bonuses/maluses for reaching intermediate targets.
 
 ## 🛠️ Contributing
 We welcome contributions from the community! If you have an idea for a new puzzle or want to improve an existing one, feel free to open an issue or submit a pull request.
