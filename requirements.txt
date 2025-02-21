@@ -1,0 +1,14 @@
+gymnasium==0.29.1
+jupyter==1.1.1
+matplotlib==3.9.2
+moviepy==2.1.2
+numpy==2.1.1
+pandas==2.2.3
+pillow==10.4.0
+pygame==2.6.1
+python-dotenv==1.0.1
+stable_baselines3==2.3.2
+tensorboard==2.18.0
+tensorboard-data-server==0.7.2
+torch==2.4.1
+tqdm==4.67.1
