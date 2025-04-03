@@ -33,7 +33,10 @@ Playing this game helps children:
 
 ## Demonstrations
 - **Kid Playing the Game**
-  - [Insert video of the 2-year-old kid playing the game]
+My two-year-old kid takes about 1 minutes and 15 seconds to solve the puzzle. The following video shows him completing a game.
+<video controls src="videos/2yo-solving-digits.mp4" title="Two-year-old solving the puzzle"></video>
+It used to be difficult for him to differentiate between 6 and 9. Now, his main challenge is to know which side of 8 should be up and which one should be down.
+
 - **AI Agent Playing the Game**
   
   The following video shows the agent trying to solve the puzzle after $600$ episodes of training.
